@@ -34,13 +34,21 @@ function csvToFaqText(csv: string): string {
   return lines
     .filter((line) => line.trim())
     .map((line) => {
-      const [question, answer] = parseCSVLine(line);
+      const cols = parseCSVLine(line);
+      // รองรับทั้ง 5 คอลัมน์ (id,category,question,question_variations,answer)
+      // และ 2 คอลัมน์ (question,answer) สำหรับ sheet แบบง่าย
+      if (cols.length >= 5) {
+        const [, category, question, variations, answer] = cols;
+        const variationLine = variations ? `\nคำถามที่เกี่ยวข้อง: ${variations}` : '';
+        return `[${category}] ${question}${variationLine}\nคำตอบ: ${answer}`;
+      }
+      const [question, answer] = cols;
       return `Q: ${question}\nA: ${answer}`;
     })
     .join('\n\n');
 }
 
-function parseCSVLine(line: string): [string, string] {
+function parseCSVLine(line: string): string[] {
   const result: string[] = [];
   let current = '';
   let inQuotes = false;
@@ -50,5 +58,5 @@ function parseCSVLine(line: string): [string, string] {
     else current += char;
   }
   result.push(current.trim());
-  return [result[0] ?? '', result[1] ?? ''];
+  return result;
 }
