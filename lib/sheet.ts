@@ -20,7 +20,8 @@ export async function fetchFaq(): Promise<string> {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const csv = await res.text();
-    const text = csvToFaqText(csv);
+    const full = csvToFaqText(csv);
+    const text = full.length > 30_000 ? full.slice(0, 30_000) + '\n...' : full;
     cache = { text, expiresAt: now + CACHE_TTL_MS };
     return text;
   } catch (err) {

@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'gemini-2.0-flash';
 
 export const DEFAULT_REPLY =
   'ขออภัยครับ ทีมงานจะติดต่อกลับโดยตรง กรุณาฝากเบอร์โทรหรือช่องทางการติดต่ออื่นๆไว้ได้เลยครับ หรือมีข้อสงสัยด้านอื่นอีกไหมครับ';
@@ -42,7 +42,7 @@ function buildSystemPrompt(faqText: string): string {
 - ภาษาไทยเท่านั้น
 - ยาว 1-3 ประโยค กระชับตรงประเด็น
 - โทน: สุภาพ เป็นกันเอง มืออาชีพ ไม่เล่น ไม่คุยนอกประเด็น
-- ลงท้ายด้วย "ครับ" หรือ "ครับ" ตามเพศ
+- ลงท้ายด้วย "ครับ" หรือ "ค่ะ" ตามเพศของ bot (SPENDER™ ใช้ "ครับ" เสมอ)
 - ไม่ขึ้นต้นด้วย "สวัสดี" ทุกประโยค
 </output_format>
 
@@ -67,8 +67,8 @@ export async function generateReply(userMessage: string, faqText: string): Promi
     contents: userMessage,
     config: {
       systemInstruction: systemPrompt,
-      temperature: 1.0,
-      maxOutputTokens: 1024,
+      temperature: 0.7,
+      maxOutputTokens: 300,
     },
   });
 
