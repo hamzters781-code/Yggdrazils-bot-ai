@@ -1,7 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenAI } from '@google/genai';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const MODEL = 'claude-haiku-4-5-20251001';
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+const MODEL = 'gemini-2.0-flash';
 
 export const DEFAULT_REPLY =
   'ขออภัยครับ ทีมงานจะติดต่อกลับโดยตรง กรุณาฝากเบอร์โทรหรือช่องทางการติดต่ออื่นๆไว้ได้เลยครับ หรือมีข้อสงสัยด้านอื่นอีกไหมครับ';
@@ -62,34 +62,36 @@ export async function generateReply(userMessage: string, faqText: string): Promi
   const startTime = Date.now();
   const systemPrompt = buildSystemPrompt(faqText);
 
-  const response = await client.messages.create({
+  const response = await ai.models.generateContent({
     model: MODEL,
-    max_tokens: 300,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userMessage }],
+    contents: userMessage,
+    config: {
+      systemInstruction: systemPrompt,
+      temperature: 0.7,
+      maxOutputTokens: 300,
+    },
   });
 
-  const finishReason = response.stop_reason;
-  const usage = response.usage;
+  const finishReason = response.candidates?.[0]?.finishReason;
+  const usage = response.usageMetadata;
 
-  console.log('[claude] reply generated', JSON.stringify({
+  console.log('[gemini] reply generated', JSON.stringify({
     latencyMs: Date.now() - startTime,
     inputLength: userMessage.length,
-    outputLength: response.content[0]?.type === 'text' ? response.content[0].text.length : 0,
+    outputLength: response.text?.length ?? 0,
     finishReason,
-    inputTokens: usage.input_tokens,
-    outputTokens: usage.output_tokens,
+    thoughtsTokenCount: usage?.thoughtsTokenCount ?? 0,
+    candidatesTokenCount: usage?.candidatesTokenCount ?? 0,
+    totalTokenCount: usage?.totalTokenCount ?? 0,
   }));
 
-  if (finishReason === 'max_tokens') {
-    console.warn('[claude] max_tokens — returning default reply');
+  if (finishReason === 'MAX_TOKENS') {
+    console.warn('[gemini] MAX_TOKENS — returning default reply');
     return DEFAULT_REPLY;
   }
 
-  const block = response.content[0];
-  if (!block || block.type !== 'text' || !block.text.trim()) {
-    throw new Error('claude_empty_response');
-  }
+  const text = response.text?.trim();
+  if (!text) throw new Error('gemini_empty_response');
 
-  return block.text.trim();
+  return text;
 }
